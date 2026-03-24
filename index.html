@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>写字楼租赁管理系统</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; --bg: #f4f6f8; --warning: #f39c12; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: var(--primary); border-bottom: 3px solid var(--accent); display: inline-block; padding-bottom: 10px; margin-top:10px; }
+        .header-wrapper { text-align: center; }
+
+        /* 搜索栏 */
+        .search-container { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin: 20px 0; border: 1px solid #eee; }
+        .search-bar { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+        .search-bar input { width: 400px; max-width: 100%; padding: 12px 15px; border: 2px solid #ddd; border-radius: 6px; font-size: 15px; }
+        .search-bar input:focus { border-color: var(--accent); outline: none; }
+        .search-bar button { padding: 12px 25px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; }
+        .search-bar button:hover { background: #2980b9; }
+        .search-history { margin-top: 10px; text-align: center; font-size: 13px; color: #666; }
+        .history-tag { display: inline-block; background: #eee; padding: 4px 10px; border-radius: 15px; margin: 2px; cursor: pointer; }
+        .history-tag:hover { background: var(--accent); color: white; }
+        .search-result { background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 20px; display: none; border: 1px solid #e9ecef; animation: slideDown 0.3s; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .result-group { margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px; border: 1px solid #eee; cursor: pointer; }
+        .result-group:hover { background: #eef7ff; }
+        .result-group h4 { color: var(--primary); margin: 0 0 12px 0; border-left: 4px solid var(--accent); padding-left: 10px; display: flex; justify-content: space-between; }
+        .result-item { padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; }
+        .highlight { background: yellow; font-weight: bold; }
+
+        /* 标签页 */
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px the #eee; flex-wrap: wrap; }
+        .tab { padding: 12px 25px; cursor: pointer; background: #fff; border: 1px solid transparent; border-bottom: none; margin-right: 5px; border-radius: 8px 8px 0 0; font-weight: 600; color: #7f8c8d; transition: all 0.3s; }
+        .tab:hover { background: #f9f9f9; }
+        .tab.active { background: var(--accent); color: white; }
+        .tab-content { display: none; animation: fadeIn 0.5s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* 表单与表格 */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; }
+        .form-group { margin-bottom: 5px; }
+        .form-group.full-width { grid-column: 1 / -1; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em; color: var(--primary); }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        input:focus, select:focus { border-color: var(--accent); outline: none; }
+        button { background: var(--accent); color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2980b9; }
+        button.danger { background: var(--danger); }
+        button.secondary { background: #95a5a6; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: var(--primary); color: white; }
+        tr:hover { background: #f1f1f1; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; color: white; }
+        .badge-a { background: var(--danger); } .badge-b { background: #f39c12; } .badge-c { background: #95a5a6; }
+        .priority-row-A { background: #fff5f5; border-left: 4px solid var(--danger); }
+
+        /* 状态标签样式 */
+        .status-badge { padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; }
+        .status-rented { background: var(--success); }
+        .status-vacant { background: var(--warning); }
+        .expire-soon { background: #fff1f0 !important; border-left: 4px solid var(--danger) !important; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+
+        /* 统计卡片 */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid var(--accent); }
+        .stat-value { font-size: 28px; font-weight: bold; color: var(--primary); margin: 10px 0; }
+
+        #toast { visibility: hidden; min-width: 250px; background: #333; color: #fff; text-align: center; border-radius: 4px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1; } }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0; } }
+
+        /* 弹窗样式 */
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; z-index:9999; }
+        .modal { background:#fff; border-radius:10px; width:90%; max-width:800px; max-height:90vh; overflow-y:auto; padding:25px; box-shadow:0 5px 20px rgba(0,0,0,0.2); }
+        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+        .modal-header h3 { margin:0; color:var(--primary); }
+        .close-btn { background:none; border:none; font-size:24px; cursor:pointer; color:#777; }
+        .edit-form-footer { text-align:right; margin-top:20px; }
+
+        /* 房源详情弹窗 */
+        #detailModal .info-row { padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; }
+        #detailModal .label { width: 120px; font-weight: bold; color: #555; }
+        #detailModal .value { flex: 1; }
+        .detail-btns { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header-wrapper">
+        <h1>🏢 写字楼租赁管理系统</h1>
+        <div class="search-container">
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="🔍 搜索房号、楼盘、面积" onkeydown="if(event.key==='Enter')performSearch()">
+                <button onclick="performSearch()">🔍 搜索</button>
+                <button class="secondary" onclick="clearSearch()">清空</button>
+            </div>
+            <div class="searchHistory" id="searchHistory"></div>
+        </div>
+        <div class="search-result" id="searchResult"><div id="resultContent"></div></div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="openTab(event, 'dashboard')">📊 工作台</div>
+        <div class="tab" onclick="openTab(event, 'properties')">🏬 房源管理</div>
+        <div class="tab" onclick="openTab(event, 'clients')">👥 客户管理</div>
+        <div class="tab" onclick="openTab(event, 'visits')">👣 带看记录</div>
+        <div class="tab" onclick="openTab(event, 'followups')">📞 跟进回访</div>
+    </div>
+
+    <!-- 工作台 -->
+    <div id="dashboard" class="tab-content active">
+        <h2>今日概览</h2>
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-label">总房源</div><div class="stat-value" id="dash-total-properties">0</div></div>
+            <div class="stat-card" style="border-top-color:var(--success)"><div class="stat-label">✅ 已租</div><div class="stat-value" id="dash-rented">0</div></div>
+            <div class="stat-card" style="border-top-color:var(--warning)"><div class="stat-label">⏳ 待租</div><div class="stat-value" id="dash-vacant">0</div></div>
+            <div class="stat-card" style="border-top-color:var(--danger)"><div class="stat-label">🔥 即将到期</div><div class="stat-value" id="dash-expire-soon">0</div></div>
+            <div class="stat-card"><div class="stat-label">今日需回访</div><div class="stat-value" id="dash-today-followup">0</div></div>
+            <div class="stat-card"><div class="stat-label">本月带看</div><div class="stat-value" id="dash-month-visits">0</div></div>
+        </div>
+        <h3>最近动态</h3>
+        <table><thead><tr><th>时间</th><th>客户</th><th>类型</th><th>内容</th></tr></thead><tbody id="recent-activity-body"></tbody></table>
+    </div>
+
+    <!-- 房源管理 -->
+    <div id="properties" class="tab-content">
+        <h2>添加房源</h2>
+        <form id="propertyForm" class="form-grid" onsubmit="handlePropertySubmit(event)">
+            <div class="form-group">
+                <label>楼盘名称 *</label>
+                <select id="propNameSelect" onchange="handleBuildingSelectChange()" required>
+                    <option value="">-- 请选择或新建 --</option>
+                    <option value="__NEW__">➕ 新建楼盘...</option>
+                </select>
+                <input type="text" id="propNameInput" style="display:none; margin-top:5px;" placeholder="输入新楼盘名称">
+            </div>
+            <div class="form-group"><label>楼层/房号 *</label><input type="text" id="propFloor" required></div>
+            <div class="form-group"><label>面积 (㎡) *</label><input type="number" id="propArea" required></div>
+            <div class="form-group"><label>租金单价 *</label><input type="number" step="0.01" id="propPrice" required></div>
+            <div class="form-group">
+                <label>租金单位 *</label>
+                <select id="propUnit" required>
+                    <option value="㎡/月">元/㎡/月</option>
+                    <option value="月">元/月</option>
+                    <option value="年">元/年</option>
+                </select>
+            </div>
+            <div class="form-group"><label>装修</label><select id="propDecor"><option value="毛坯">毛坯</option><option value="精装">精装</option><option value="简装">简装</option></select></div>
+            <div class="form-group">
+                <label>租赁状态</label>
+                <select id="propStatus" onchange="toggleContractDates()" required>
+                    <option value="vacant">待租</option>
+                    <option value="rented">已租</option>
+                </select>
+            </div>
+            <div class="form-group" id="contractStartGroup">
+                <label>合同起始日</label>
+                <input type="date" id="propStartDate">
+            </div>
+            <div class="form-group" id="contractEndGroup">
+                <label>合同到期日</label>
+                <input type="date" id="propEndDate">
+            </div>
+            <div class="form-group full-width"><label>备注</label><textarea id="propDesc" rows="2"></textarea></div>
+            <div class="form-group full-width"><button type="submit">➕ 添加房源</button></div>
+        </form>
+        <h3>房源列表</h3>
+        <div style="overflow-x:auto;"><table><thead><tr><th>楼盘</th><th>房号</th><th>面积</th><th>租金</th><th>状态</th><th>合同日期</th><th>操作</th></tr></thead><tbody id="propertyList"></tbody></table></div>
+    </div>
+
+    <!-- 客户管理 -->
+    <div id="clients" class="tab-content">
+        <h2>添加客户</h2>
+        <form id="clientForm" class="form-grid" onsubmit="handleClientSubmit(event)">
+            <div class="form-group"><label>姓名/公司 *</label><input type="text" id="cliName" required></div>
+            <div class="form-group"><label>电话 *</label><input type="text" id="cliPhone" required></div>
+            <div class="form-group"><label>需求面积</label><input type="text" id="cliAreaReq"></div>
+            <div class="form-group"><label>等级</label><select id="cliLevel"><option value="C">C类</option><option value="B">B类</option><option value="A">A类 (重点)</option></select></div>
+            <div class="form-group full-width"><label>备注</label><textarea id="cliNote" rows="2"></textarea></div>
+            <div class="form-group full-width"><button type="submit">➕ 添加客户</button></div>
+        </form>
+        <h3>客户列表</h3>
+        <div style="overflow-x:auto;"><table><thead><tr><th>等级</th><th>名称</th><th>电话</th><th>操作</th></tr></thead><tbody id="clientList"></tbody></table></div>
+    </div>
+
+    <!-- 带看 -->
+    <div id="visits" class="tab-content">
+        <h2>记录带看</h2>
+        <form id="visitForm" class="form-grid" onsubmit="handleVisitSubmit(event)">
+            <div class="form-group"><label>客户 *</label><select id="visitClient" required></select></div>
+            <div class="form-group"><label>房源 *</label><select id="visitProperty" required></select></div>
+            <div class="form-group"><label>日期 *</label><input type="date" id="visitDate" required></div>
+            <div class="form-group"><label>反馈</label><select id="visitFeedback"><option>满意</option><option>一般</option><option>不满意</option></select></div>
+            <div class="form-group full-width"><button type="submit">➕ 保存带看</button></div>
+        </form>
+        <h3>带看历史</h3>
+        <div style="overflow-x:auto;"><table><thead><tr><th>日期</th><th>客户</th><th>房源</th><th>反馈</th></tr></thead><tbody id="visitList"></tbody></table></div>
+    </div>
+
+    <!-- 跟进回访 -->
+    <div id="followups" class="tab-content">
+        <h2>跟进回访</h2>
+        <form id="followupForm" class="form-grid" onsubmit="handleFollowupSubmit(event)">
+            <div class="form-group"><label>客户 *</label><select id="fuClient" required></select></div>
+            <div class="form-group"><label>房源编号</label><select id="fuProperty"></select></div>
+            <div class="form-group"><label>方式</label><select id="fuType"><option>电话</option><option>微信</option></select></div>
+            <div class="form-group"><label>下次跟进</label><input type="datetime-local" id="fuNextDate"></div>
+            <div class="form-group full-width"><label>内容 *</label><textarea id="fuContent" rows="3" required></textarea></div>
+            <div class="form-group full-width"><button type="submit">➕ 保存跟进</button></div>
+        </form>
+        <h3>跟进历史</h3>
+        <div style="overflow-x:auto;"><table><thead><tr><th>时间</th><th>客户</th><th>房源</th><th>下次</th><th>内容</th></tr></thead><tbody id="followupList"></tbody></table></div>
+    </div>
+</div>
+
+<!-- 房源详情弹窗 -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>🏢 房源详情</h3>
+            <button class="close-btn" onclick="closeDetailModal()">&times;</button>
+        </div>
+        <div id="detailBody"></div>
+        <div class="detail-btns">
+            <button class="secondary" onclick="closeDetailModal()">关闭</button>
+            <button style="background:var(--success)" onclick="goEditFromSearch()">✏️ 直接编辑</button>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>✏️ 编辑房源</h3>
+            <button class="close-btn" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form id="editPropertyForm" class="form-grid" onsubmit="handlePropertyUpdate(event)">
+            <input type="hidden" id="editPropId">
+            <div class="form-group">
+                <label>楼盘名称 *</label>
+                <select id="editPropNameSelect" onchange="handleEditBuildingChange()" required>
+                    <option value="">-- 请选择 --</option>
+                    <option value="__NEW__">➕ 新建楼盘...</option>
+                </select>
+                <input type="text" id="editPropNameInput" style="display:none; margin-top:5px;" placeholder="输入新楼盘名称">
+            </div>
+            <div class="form-group"><label>楼层/房号 *</label><input type="text" id="editPropFloor" required></div>
+            <div class="form-group"><label>面积 (㎡) *</label><input type="number" id="editPropArea" required></div>
+            <div class="form-group"><label>租金单价 *</label><input type="number" step="0.01" id="editPropPrice" required></div>
+            <div class="form-group">
+                <label>租金单位 *</label>
+                <select id="editPropUnit" required>
+                    <option value="㎡/月">元/㎡/月</option>
+                    <option value="月">元/月</option>
+                    <option value="年">元/年</option>
+                </select>
+            </div>
+            <div class="form-group"><label>装修</label><select id="editPropDecor"><option value="毛坯">毛坯</option><option value="精装">精装</option><option value="简装">简装</option></select></div>
+            <div class="form-group">
+                <label>租赁状态</label>
+                <select id="editPropStatus" onchange="toggleEditContractDates()" required>
+                    <option value="vacant">待租</option>
+                    <option value="rented">已租</option>
+                </select>
+            </div>
+            <div class="form-group" id="editContractStartGroup">
+                <label>合同起始日</label>
+                <input type="date" id="editPropStartDate">
+            </div>
+            <div class="form-group" id="editContractEndGroup">
+                <label>合同到期日</label>
+                <input type="date" id="editPropEndDate">
+            </div>
+            <div class="form-group full-width"><label>备注</label><textarea id="editPropDesc" rows="2"></textarea></div>
+            <div class="edit-form-footer full-width">
+                <button type="button" class="secondary" onclick="closeEditModal()" style="margin-right:10px;">取消</button>
+                <button type="submit">💾 保存修改</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="toast">操作成功</div>
+
+<script>
+    let properties = [], clients = [], visits = [], followups = [];
+    let searchHistory = JSON.parse(localStorage.getItem('crm_search_history') || '[]');
+    let currentEditId = null;
+    let currentDetailId = null;
+
+    function init() {
+        try {
+            properties = JSON.parse(localStorage.getItem('office_properties') || '[]');
+            clients = JSON.parse(localStorage.getItem('office_clients') || '[]');
+            visits = JSON.parse(localStorage.getItem('office_visits') || '[]');
+            followups = JSON.parse(localStorage.getItem('office_followups') || '[]');
+        } catch(e) {}
+        renderHistory();
+        updateBuildingDropdown();
+        toggleContractDates();
+        renderAll();
+    }
+
+    function save() {
+        localStorage.setItem('office_properties', JSON.stringify(properties));
+        localStorage.setItem('office_clients', JSON.stringify(clients));
+        localStorage.setItem('office_visits', JSON.stringify(visits));
+        localStorage.setItem('office_followups', JSON.stringify(followups));
+    }
+
+    const getId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+    function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.className = "show";
+        setTimeout(()=>t.className="",2500);
+    }
+
+    // 日期显示
+    function toggleContractDates() {
+        const s = document.getElementById('propStatus').value;
+        const g1 = document.getElementById('contractStartGroup');
+        const g2 = document.getElementById('contractEndGroup');
+        const i1 = document.getElementById('propStartDate');
+        const i2 = document.getElementById('propEndDate');
+        if(s==='rented'){ g1.style.display='block'; g2.style.display='block'; i1.required=true; i2.required=true; }
+        else { g1.style.display='none'; g2.style.display='none'; i1.required=false; i2.required=false; i1.value=''; i2.value=''; }
+    }
+
+    function toggleEditContractDates() {
+        const s = document.getElementById('editPropStatus').value;
+        const g1 = document.getElementById('editContractStartGroup');
+        const g2 = document.getElementById('editContractEndGroup');
+        const i1 = document.getElementById('editPropStartDate');
+        const i2 = document.getElementById('editPropEndDate');
+        if(s==='rented'){ g1.style.display='block'; g2.style.display='block'; i1.required=true; i2.required=true; }
+        else { g1.style.display='none'; g2.style.display='none'; i1.required=false; i2.required=false; }
+    }
+
+    function isExpireSoon(end) {
+        if(!end) return false;
+        const d = Math.ceil((new Date(end)-new Date())/86400000);
+        return d>0 && d<=60;
+    }
+
+    // 搜索
+    function performSearch() {
+        const kw = document.getElementById('searchInput').value.trim().toLowerCase();
+        if(!kw) return;
+        if(!searchHistory.includes(kw)){
+            searchHistory.unshift(kw);
+            if(searchHistory.length>3) searchHistory.pop();
+            localStorage.setItem('crm_search_history',JSON.stringify(searchHistory));
+            renderHistory();
+        }
+        const list = properties.filter(p=>
+            p.name.toLowerCase().includes(kw) ||
+            p.floor.toLowerCase().includes(kw) ||
+            p.area.includes(kw)
+        );
+        const res = document.getElementById('searchResult');
+        const cnt = document.getElementById('resultContent');
+        if(list.length===0){
+            res.style.display='block';
+            cnt.innerHTML='<div style="text-align:center;padding:20px;">未找到结果</div>';
+            return;
+        }
+        let html = `<h3>找到 ${list.length} 个房源</h3>`;
+        list.forEach(p=>{
+            const st = p.status==='rented'?'已租':'待租';
+            const warn = isExpireSoon(p.endDate) ? '<span style="color:red">⚠️ 即将到期</span>' : '';
+            html += `
+            <div class="result-group" onclick="openDetail('${p.id}')">
+                <h4>🏢 ${p.name} - ${p.floor} ${warn}</h4>
+                <div class="result-item"><span>面积：</span><span>${p.area}㎡</span></div>
+                <div class="result-item"><span>租金：</span><span>¥${p.price}/${p.unit}</span></div>
+                <div class="result-item"><span>状态：</span><span>${st}</span></div>
+            </div>`;
+        });
+        cnt.innerHTML = html;
+        res.style.display = 'block';
+    }
+
+    function clearSearch() {
+        document.getElementById('searchInput').value='';
+        document.getElementById('searchResult').style.display='none';
+    }
+
+    function renderHistory() {
+        document.getElementById('searchHistory').innerHTML =
+            searchHistory.map(k=>`<span class="history-tag" onclick="document.getElementById('searchInput').value='${k}';performSearch()">${k}</span>`).join('');
+    }
+
+    // 楼盘选择
+    function updateBuildingDropdown() {
+        const sel = document.getElementById('propNameSelect');
+        const names = [...new Set(properties.map(p=>p.name))].sort();
+        sel.innerHTML = '<option value="">-- 请选择 --</option><option value="__NEW__">➕ 新建楼盘...</option>';
+        names.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+    }
+
+    function handleBuildingSelectChange() {
+        const v = document.getElementById('propNameSelect').value;
+        const i = document.getElementById('propNameInput');
+        if(v==='__NEW__'){ i.style.display='block'; i.required=true; }
+        else { i.style.display='none'; i.required=false; }
+    }
+
+    function handleEditBuildingChange() {
+        const v = document.getElementById('editPropNameSelect').value;
+        const i = document.getElementById('editPropNameInput');
+        if(v==='__NEW__'){ i.style.display='block'; i.required=true; }
+        else { i.style.display='none'; i.required=false; }
+    }
+
+    function getPropName(){
+        const v = document.getElementById('propNameSelect').value;
+        return v==='__NEW__' ? document.getElementById('propNameInput').value.trim() : v;
+    }
+    function getEditPropName(){
+        const v = document.getElementById('editPropNameSelect').value;
+        return v==='__NEW__' ? document.getElementById('editPropNameInput').value.trim() : v;
+    }
+
+    // 详情弹窗
+    function openDetail(id) {
+        currentDetailId = id;
+        const p = properties.find(x=>x.id===id);
+        if(!p) return;
+        const status = p.status==='rented'?'已租':'待租';
+        const warn = isExpireSoon(p.endDate) ? '是（60天内）' : '否';
+        let html = `
+            <div class="info-row"><span class="label">楼盘名称：</span><span class="value">${p.name}</span></div>
+            <div class="info-row"><span class="label">房号：</span><span class="value">${p.floor}</span></div>
+            <div class="info-row"><span class="label">面积：</span><span class="value">${p.area} ㎡</span></div>
+            <div class="info-row"><span class="label">租金：</span><span class="value">¥${p.price} / ${p.unit}</span></div>
+            <div class="info-row"><span class="label">装修：</span><span class="value">${p.decor}</span></div>
+            <div class="info-row"><span class="label">租赁状态：</span><span class="value">${status}</span></div>
+            <div class="info-row"><span class="label">合同起始：</span><span class="value">${p.startDate||'-'}</span></div>
+            <div class="info-row"><span class="label">合同到期：</span><span class="value">${p.endDate||'-'}</span></div>
+            <div class="info-row"><span class="label">即将到期：</span><span class="value">${warn}</span></div>
+            <div class="info-row"><span class="label">备注：</span><span class="value">${p.desc||'-'}</span></div>
+        `;
+        document.getElementById('detailBody').innerHTML = html;
+        document.getElementById('detailModal').style.display = 'flex';
+    }
+
+    function closeDetailModal() {
+        document.getElementById('detailModal').style.display = 'none';
+    }
+
+    // 从搜索详情直接进入编辑
+    function goEditFromSearch() {
+        closeDetailModal();
+        openEditModal(currentDetailId);
+    }
+
+    // 编辑
+    function openEditModal(id) {
+        currentEditId = id;
+        const p = properties.find(x=>x.id===id);
+        if(!p) return;
+        document.getElementById('editPropId').value = p.id;
+        const names = [...new Set(properties.map(x=>x.name))].sort();
+        const sel = document.getElementById('editPropNameSelect');
+        sel.innerHTML = '<option value="">-- 请选择 --</option><option value="__NEW__">➕ 新建楼盘...</option>';
+        names.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+        sel.value = p.name;
+
+        document.getElementById('editPropFloor').value = p.floor;
+        document.getElementById('editPropArea').value = p.area;
+        document.getElementById('editPropPrice').value = p.price;
+        document.getElementById('editPropUnit').value = p.unit;
+        document.getElementById('editPropDecor').value = p.decor;
+        document.getElementById('editPropStatus').value = p.status;
+        document.getElementById('editPropStartDate').value = p.startDate||'';
+        document.getElementById('editPropEndDate').value = p.endDate||'';
+        document.getElementById('editPropDesc').value = p.desc||'';
+        toggleEditContractDates();
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+        currentEditId = null;
+    }
+
+    // 标签页
+    function openTab(evt, name) {
+        document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+        document.getElementById(name).classList.add('active');
+        if(evt && evt.currentTarget) evt.currentTarget.classList.add('active');
+        if(name==='dashboard') updateDashboard();
+        if(name==='properties') updateBuildingDropdown();
+    }
+
+    // 渲染
+    function renderAll() {
+        // 房源列表
+        document.getElementById('propertyList').innerHTML = properties.map(p=>{
+            const status = p.status==='rented'?'已租':'待租';
+            const cls = p.status==='rented'?'status-rented':'status-vacant';
+            const row = isExpireSoon(p.endDate)?'expire-soon':'';
+            return `<tr class="${row}">
+                <td>${p.name}</td>
+                <td>${p.floor}</td>
+                <td>${p.area}㎡</td>
+                <td>¥${p.price}/${p.unit}</td>
+                <td><span class="status-badge ${cls}">${status}</span></td>
+                <td>${p.startDate||'-'} ~ ${p.endDate||'-'}</td>
+                <td>
+                    <button onclick="openEditModal('${p.id}')" style="background:var(--success)">编辑</button>
+                    <button class="danger" onclick="del('properties','${p.id}')">删除</button>
+                </td>
+            </tr>`;
+        }).join('')||'<tr><td colspan=7 align=center>暂无数据</td></tr>';
+
+        // 客户
+        document.getElementById('clientList').innerHTML = clients.map(c=>{
+            const bd = c.level==='A'?'badge-a':c.level==='B'?'badge-b':'badge-c';
+            return `<tr><td><span class="badge ${bd}">${c.level}</span></td><td>${c.name}</td><td>${c.phone}</td>
+            <td><button class=danger onclick=del('clients','${c.id}')>删除</button></td></tr>`;
+        }).join('')||'<tr><td colspan=4 align=center>暂无数据</td></tr>';
+
+        // 带看
+        document.getElementById('visitList').innerHTML = visits.slice().reverse().map(v=>{
+            const c = clients.find(x=>x.id===v.clientId);
+            const p = properties.find(x=>x.id===v.propId);
+            return `<tr><td>${v.date}</td><td>${c?c.name:'?'}</td><td>${p?p.name+' '+p.floor:'?'}</td><td>${v.feedback}</td></tr>`;
+        }).join('')||'<tr><td colspan=4 align=center>暂无数据</td></tr>';
+
+        // 跟进
+        document.getElementById('followupList').innerHTML = followups.slice().reverse().map(f=>{
+            const c = clients.find(x=>x.id===f.clientId);
+            const p = properties.find(x=>x.id===f.propId);
+            return `<tr><td>${f.date}</td><td>${c?c.name:'?'}</td><td>${p?p.name+' '+p.floor:'-'}</td><td>${f.nextDate||'-'}</td><td>${f.content.substr(0,20)}...</td></tr>`;
+        }).join('')||'<tr><td colspan=5 align=center>暂无数据</td></tr>';
+
+        updateSelects();
+        updateDashboard();
+    }
+
+    function updateSelects() {
+        function fill(id,data,fn){
+            const el = document.getElementById(id);
+            el.innerHTML = '<option value="">-- 无 --</option>' + data.map(i=>`<option value="${i.id}">${fn(i)}</option>`).join('');
+        }
+        fill('visitClient',clients,c=>c.name);
+        fill('fuClient',clients,c=>c.name);
+        fill('visitProperty',properties,p=>`${p.name} ${p.floor}`);
+        fill('fuProperty',properties,p=>`${p.name} ${p.floor}`);
+    }
+
+    function updateDashboard() {
+        document.getElementById('dash-total-properties').innerText = properties.length;
+        document.getElementById('dash-rented').innerText = properties.filter(p=>p.status==='rented').length;
+        document.getElementById('dash-vacant').innerText = properties.filter(p=>p.status==='vacant').length;
+        document.getElementById('dash-expire-soon').innerText = properties.filter(p=>isExpireSoon(p.endDate)).length;
+        document.getElementById('dash-today-followup').innerText = followups.filter(f=>f.nextDate && new Date(f.nextDate)<=new Date()).length;
+        document.getElementById('dash-month-visits').innerText = visits.filter(v=>v.date.startsWith(new Date().toISOString().slice(0,7))).length;
+    }
+
+    // 提交
+    function handlePropertySubmit(e) {
+        e.preventDefault();
+        const name = getPropName();
+        if(!name){alert('请填写楼盘');return;}
+        properties.push({
+            id:getId(), name,
+            floor:document.getElementById('propFloor').value,
+            area:document.getElementById('propArea').value,
+            price:document.getElementById('propPrice').value,
+            unit:document.getElementById('propUnit').value,
+            decor:document.getElementById('propDecor').value,
+            status:document.getElementById('propStatus').value,
+            startDate:document.getElementById('propStartDate').value,
+            endDate:document.getElementById('propEndDate').value,
+            desc:document.getElementById('propDesc').value
+        });
+        save(); updateBuildingDropdown(); renderAll(); e.target.reset();
+        document.getElementById('propNameInput').style.display='none';
+        toggleContractDates();
+        showToast('添加成功');
+    }
+
+    function handlePropertyUpdate(e) {
+        e.preventDefault();
+        const id = document.getElementById('editPropId').value;
+        const name = getEditPropName();
+        if(!name){alert('请填写楼盘');return;}
+        const i = properties.findIndex(x=>x.id===id);
+        if(i===-1)return;
+        properties[i] = {
+            ...properties[i], name,
+            floor:document.getElementById('editPropFloor').value,
+            area:document.getElementById('editPropArea').value,
+            price:document.getElementById('editPropPrice').value,
+            unit:document.getElementById('editPropUnit').value,
+            decor:document.getElementById('editPropDecor').value,
+            status:document.getElementById('editPropStatus').value,
+            startDate:document.getElementById('editPropStartDate').value,
+            endDate:document.getElementById('editPropEndDate').value,
+            desc:document.getElementById('editPropDesc').value
+        };
+        save(); updateBuildingDropdown(); renderAll(); closeEditModal();
+        showToast('修改成功');
+    }
+
+    function handleClientSubmit(e){
+        e.preventDefault();
+        clients.push({id:getId(),name:document.getElementById('cliName').value,phone:document.getElementById('cliPhone').value,areaReq:document.getElementById('cliAreaReq').value,level:document.getElementById('cliLevel').value,note:document.getElementById('cliNote').value});
+        save(); renderAll(); e.target.reset(); showToast('添加成功');
+    }
+
+    function handleVisitSubmit(e){
+        e.preventDefault();
+        visits.push({id:getId(),clientId:document.getElementById('visitClient').value,propId:document.getElementById('visitProperty').value,date:document.getElementById('visitDate').value,feedback:document.getElementById('visitFeedback').value});
+        save(); renderAll(); e.target.reset(); showToast('保存成功');
+    }
+
+    function handleFollowupSubmit(e){
+        e.preventDefault();
+        followups.push({id:getId(),clientId:document.getElementById('fuClient').value,propId:document.getElementById('fuProperty').value,type:document.getElementById('fuType').value,date:new Date().toLocaleString(),nextDate:document.getElementById('fuNextDate').value,content:document.getElementById('fuContent').value});
+        save(); renderAll(); e.target.reset(); showToast('保存成功');
+    }
+
+    function del(type,id){
+        if(!confirm('确定删除？'))return;
+        if(type==='properties')properties=properties.filter(x=>x.id!==id);
+        if(type==='clients')clients=clients.filter(x=>x.id!==id);
+        if(type==='visits')visits=visits.filter(x=>x.id!==id);
+        if(type==='followups')followups=followups.filter(x=>x.id!==id);
+        save(); renderAll();
+        if(type==='properties')updateBuildingDropdown();
+        showToast('删除成功');
+    }
+
+    init();
+</script>
+</body>
+</html>
