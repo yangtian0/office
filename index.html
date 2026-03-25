@@ -30,7 +30,7 @@
         .highlight { background: yellow; font-weight: bold; }
 
         /* 标签页 */
-        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px the #eee; flex-wrap: wrap; }
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #eee; flex-wrap: wrap; }
         .tab { padding: 12px 25px; cursor: pointer; background: #fff; border: 1px solid transparent; border-bottom: none; margin-right: 5px; border-radius: 8px 8px 0 0; font-weight: 600; color: #7f8c8d; transition: all 0.3s; }
         .tab:hover { background: #f9f9f9; }
         .tab.active { background: var(--accent); color: white; }
@@ -310,13 +310,13 @@
 <script>
     // ====================== Firebase 配置 ======================
     const firebaseConfig = {
-        apiKey: "你的API_KEY", // 替换为你的Firebase API Key
-        authDomain: "你的项目ID.firebaseapp.com", // 替换为你的Auth Domain
-        databaseURL: "https://你的项目ID-default-rtdb.firebaseio.com", // 替换为你的数据库URL
-        projectId: "你的项目ID", // 替换为你的项目ID
-        storageBucket: "你的项目ID.appspot.com", // 替换为你的存储桶
-        messagingSenderId: "你的Sender ID", // 替换为你的Sender ID
-        appId: "你的App ID" // 替换为你的App ID
+        apiKey: "你的API_KEY",
+        authDomain: "你的项目ID.firebaseapp.com",
+        databaseURL: "https://你的项目ID-default-rtdb.firebaseio.com",
+        projectId: "你的项目ID",
+        storageBucket: "你的项目ID.appspot.com",
+        messagingSenderId: "你的Sender ID",
+        appId: "你的App ID"
     };
 
     // 初始化Firebase
@@ -667,7 +667,7 @@
 
     // 渲染
     function renderAll() {
-        // 房源列表
+        // 房源列表 —— 已修复重复列BUG
         document.getElementById('propertyList').innerHTML = properties.map(p=>{
             const status = p.status==='rented'?'已租':'待租';
             const cls = p.status==='rented'?'status-rented':'status-vacant';
@@ -678,7 +678,7 @@
                 <td>${p.area}㎡</td>
                 <td>¥${p.price}/${p.unit}</td>
                 <td><span class="status-badge ${cls}">${status}</span></td>
-                <td>${p.startDate||'-'} ~ ${p.endDate||'-'}<td>${p.startDate||'-'} ~ ${p.endDate||'-'}</td>
+                <td>${p.startDate||'-'} ~ ${p.endDate||'-'}</td>
                 <td>
                     <button onclick="openEditModal('${p.id}')" style="background:var(--success)">编辑</button>
                     <button class="danger" onclick="del('properties','${p.id}')">删除</button>
@@ -731,11 +731,14 @@
         document.getElementById('dash-month-visits').innerText = visits.filter(v=>v.date.startsWith(new Date().toISOString().slice(0,7))).length;
     }
 
-    // 提交
+    // 提交 —— 已修复新建楼盘为空的BUG
     function handlePropertySubmit(e) {
         e.preventDefault();
         const name = getPropName();
-        if(!name){alert('请填写楼盘');return;}
+        if(!name || name === "__NEW__"){
+            alert('请填写正确的楼盘名称！');
+            return;
+        }
         properties.push({
             id:getId(), name,
             floor:document.getElementById('propFloor').value,
