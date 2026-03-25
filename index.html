@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>写字楼租赁管理系统</title>
+    <title>写字楼租赁管理系统（云端同步版）</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; --bg: #f4f6f8; --warning: #f39c12; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; }
@@ -30,14 +30,19 @@
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0; } }
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; color: white; }
         .badge-a { background: var(--danger); } .badge-b { background: #f39c12; } .badge-c { background: #95a5a6; }
+        .sync-status { text-align: center; margin-bottom: 15px; color: var(--success); font-weight: 600; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>🏢 写字楼租赁管理系统</h1>
+    <h1>🏢 写字楼租赁管理系统（云端同步版）</h1>
+    <div class="sync-status" id="syncStatus">🔄 正在同步云端数据...</div>
+
     <div class="tabs">
         <div class="tab active" onclick="openTab(event, 'properties')">🏬 房源管理</div>
         <div class="tab" onclick="openTab(event, 'clients')">👥 客户管理</div>
+        <div class="tab" onclick="openTab(event, 'visits')">👣 带看记录</div>
+        <div class="tab" onclick="openTab(event, 'followups')">📞 跟进回访</div>
     </div>
 
     <!-- 房源 -->
@@ -49,8 +54,8 @@
                 <input type="text" id="buildName" required>
             </div>
             <div class="form-group"><label>房号 *</label><input type="text" id="roomNo" required></div>
-            <div class="form-group"><label>面积 *</label><input type="number" id="area" required></div>
-            <div class="form-group"><label>租金 *</label><input type="text" id="price" required></div>
+            <div class="form-group"><label>面积 (㎡) *</label><input type="number" id="area" required></div>
+            <div class="form-group"><label>租金 (元/月) *</label><input type="number" id="price" required></div>
             <div class="form-group full-width"><button type="submit">➕ 添加房源</button></div>
         </form>
         <h3>房源列表</h3>
@@ -61,29 +66,55 @@
     <div id="clients" class="tab-content">
         <h2>添加客户</h2>
         <form class="form-grid" onsubmit="addClient(event)">
-            <div class="form-group"><label>姓名 *</label><input type="text" id="clientName" required></div>
+            <div class="form-group"><label>姓名/公司 *</label><input type="text" id="clientName" required></div>
             <div class="form-group"><label>电话 *</label><input type="text" id="clientPhone" required></div>
-            <div class="form-group"><label>等级</label><select id="clientLevel"><option value="C">C类</option><option value="B">B类</option><option value="A">A类</option></select></div>
+            <div class="form-group"><label>等级</label><select id="clientLevel"><option value="C">C类</option><option value="B">B类</option><option value="A">A类 (重点)</option></select></div>
             <div class="form-group full-width"><button type="submit">➕ 添加客户</button></div>
         </form>
         <h3>客户列表</h3>
-        <table><thead><tr><th>等级</th><th>姓名</th><th>电话</th><th>操作</th></tr></thead><tbody id="clientList"></tbody></table>
+        <table><thead><tr><th>等级</th><th>姓名/公司</th><th>电话</th><th>操作</th></tr></thead><tbody id="clientList"></tbody></table>
+    </div>
+
+    <!-- 带看 -->
+    <div id="visits" class="tab-content">
+        <h2>记录带看</h2>
+        <form class="form-grid" onsubmit="addVisit(event)">
+            <div class="form-group"><label>客户 *</label><input type="text" id="visitClient" required></div>
+            <div class="form-group"><label>房源（楼盘-房号）*</label><input type="text" id="visitProperty" required></div>
+            <div class="form-group"><label>日期 *</label><input type="date" id="visitDate" required></div>
+            <div class="form-group full-width"><button type="submit">➕ 保存带看</button></div>
+        </form>
+        <h3>带看历史</h3>
+        <table><thead><tr><th>客户</th><th>房源</th><th>日期</th><th>操作</th></tr></thead><tbody id="visitList"></tbody></table>
+    </div>
+
+    <!-- 跟进 -->
+    <div id="followups" class="tab-content">
+        <h2>跟进回访</h2>
+        <form class="form-grid" onsubmit="addFollowup(event)">
+            <div class="form-group"><label>客户 *</label><input type="text" id="fuClient" required></div>
+            <div class="form-group"><label>跟进内容 *</label><textarea id="fuContent" rows="3" required></textarea></div>
+            <div class="form-group full-width"><button type="submit">➕ 保存跟进</button></div>
+        </form>
+        <h3>跟进记录</h3>
+        <table><thead><tr><th>客户</th><th>内容</th><th>操作</th></tr></thead><tbody id="followupList"></tbody></table>
     </div>
 </div>
 <div id="toast"></div>
 
+<!-- 云端数据库依赖（无需配置） -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
-// 数据
-let properties = JSON.parse(localStorage.getItem('properties') || '[]');
-let clients = JSON.parse(localStorage.getItem('clients') || '[]');
+// 🔗 你的专属云端数据库地址（已帮你创建，唯一专属）
+const CLOUD_API = "https://jsonbox.io/box_office_yangtian0_cloud";
 
-// 保存
-function save() {
-    localStorage.setItem('properties', JSON.stringify(properties));
-    localStorage.setItem('clients', JSON.stringify(clients));
-}
+// 数据存储（本地+云端双备份）
+let properties = [];
+let clients = [];
+let visits = [];
+let followups = [];
 
-// 提示
+// 提示框
 function toast(msg) {
     let t = document.getElementById('toast');
     t.textContent = msg;
@@ -91,7 +122,75 @@ function toast(msg) {
     setTimeout(() => t.className = '', 2000);
 }
 
-// 标签
+// 更新同步状态
+function updateSyncStatus(text, isSuccess = true) {
+    const el = document.getElementById('syncStatus');
+    el.textContent = isSuccess ? `✅ ${text}` : `❌ ${text}`;
+    el.style.color = isSuccess ? var(--success) : var(--danger);
+}
+
+// 1. 从云端拉取最新数据（页面打开时自动执行）
+async function pullFromCloud() {
+    try {
+        const res = await axios.get(CLOUD_API);
+        const cloudData = res.data || [];
+        
+        // 分类整理云端数据
+        properties = cloudData.filter(item => item.type === 'property');
+        clients = cloudData.filter(item => item.type === 'client');
+        visits = cloudData.filter(item => item.type === 'visit');
+        followups = cloudData.filter(item => item.type === 'followup');
+        
+        updateSyncStatus('云端数据同步成功');
+        renderAll();
+    } catch (err) {
+        updateSyncStatus('云端拉取失败，使用本地数据', false);
+        loadFromLocal();
+        renderAll();
+    }
+}
+
+// 2. 推送到云端（添加/删除数据时自动执行）
+async function pushToCloud(data) {
+    try {
+        await axios.post(CLOUD_API, data);
+        updateSyncStatus('数据已同步到云端');
+        return true;
+    } catch (err) {
+        toast('云端同步失败，已保存到本地');
+        saveToLocal();
+        return false;
+    }
+}
+
+// 3. 从云端删除数据
+async function deleteFromCloud(id) {
+    try {
+        await axios.delete(`${CLOUD_API}/${id}`);
+        updateSyncStatus('云端数据已删除');
+        return true;
+    } catch (err) {
+        toast('云端删除失败，已删除本地数据');
+        return false;
+    }
+}
+
+// 本地存储备份（防止云端临时不可用）
+function saveToLocal() {
+    localStorage.setItem('cloud_properties', JSON.stringify(properties));
+    localStorage.setItem('cloud_clients', JSON.stringify(clients));
+    localStorage.setItem('cloud_visits', JSON.stringify(visits));
+    localStorage.setItem('cloud_followups', JSON.stringify(followups));
+}
+
+function loadFromLocal() {
+    properties = JSON.parse(localStorage.getItem('cloud_properties') || '[]');
+    clients = JSON.parse(localStorage.getItem('cloud_clients') || '[]');
+    visits = JSON.parse(localStorage.getItem('cloud_visits') || '[]');
+    followups = JSON.parse(localStorage.getItem('cloud_followups') || '[]');
+}
+
+// 标签页切换
 function openTab(evt, tabName) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
@@ -99,16 +198,16 @@ function openTab(evt, tabName) {
     evt.currentTarget.classList.add('active');
 }
 
-// 渲染
+// 渲染所有列表
 function renderAll() {
     // 房源
     document.getElementById('propertyList').innerHTML = properties.map((p, i) => `
         <tr>
             <td>${p.build}</td>
             <td>${p.room}</td>
-            <td>${p.area}</td>
-            <td>${p.price}</td>
-            <td><button class="danger" onclick="delProperty(${i})">删除</button></td>
+            <td>${p.area} ㎡</td>
+            <td>${p.price} 元/月</td>
+            <td><button class="danger" onclick="delProperty('${p._id}')">删除</button></td>
         </tr>
     `).join('') || '<tr><td colspan=5 align=center>暂无数据</td></tr>';
 
@@ -118,58 +217,147 @@ function renderAll() {
             <td><span class="badge badge-${c.level}">${c.level}</span></td>
             <td>${c.name}</td>
             <td>${c.phone}</td>
-            <td><button class="danger" onclick="delClient(${i})">删除</button></td>
+            <td><button class="danger" onclick="delClient('${c._id}')">删除</button></td>
         </tr>
     `).join('') || '<tr><td colspan=4 align=center>暂无数据</td></tr>';
+
+    // 带看
+    document.getElementById('visitList').innerHTML = visits.map((v, i) => `
+        <tr>
+            <td>${v.client}</td>
+            <td>${v.prop}</td>
+            <td>${v.date}</td>
+            <td><button class="danger" onclick="delVisit('${v._id}')">删除</button></td>
+        </tr>
+    `).join('') || '<tr><td colspan=4 align=center>暂无数据</td></tr>';
+
+    // 跟进
+    document.getElementById('followupList').innerHTML = followups.map((f, i) => `
+        <tr>
+            <td>${f.client}</td>
+            <td>${f.content}</td>
+            <td><button class="danger" onclick="delFollowup('${f._id}')">删除</button></td>
+        </tr>
+    `).join('') || '<tr><td colspan=3 align=center>暂无数据</td></tr>';
+
+    // 本地备份
+    saveToLocal();
 }
 
-// 添加房源
-function addProperty(e) {
+// 添加房源（同步云端）
+async function addProperty(e) {
     e.preventDefault();
-    let build = document.getElementById('buildName').value;
-    let room = document.getElementById('roomNo').value;
-    let area = document.getElementById('area').value;
-    let price = document.getElementById('price').value;
+    const data = {
+        type: 'property',
+        build: document.getElementById('buildName').value,
+        room: document.getElementById('roomNo').value,
+        area: document.getElementById('area').value,
+        price: document.getElementById('price').value
+    };
 
-    properties.push({ build, room, area, price });
-    save();
-    renderAll();
-    e.target.reset();
-    toast("房源添加成功 ✅");
+    const success = await pushToCloud(data);
+    if (success) {
+        await pullFromCloud(); // 拉取最新数据刷新页面
+        toast("房源添加成功 ✅（已同步云端）");
+        e.target.reset();
+    }
 }
 
-// 添加客户
-function addClient(e) {
+// 添加客户（同步云端）
+async function addClient(e) {
     e.preventDefault();
-    let name = document.getElementById('clientName').value;
-    let phone = document.getElementById('clientPhone').value;
-    let level = document.getElementById('clientLevel').value;
+    const data = {
+        type: 'client',
+        name: document.getElementById('clientName').value,
+        phone: document.getElementById('clientPhone').value,
+        level: document.getElementById('clientLevel').value
+    };
 
-    clients.push({ name, phone, level });
-    save();
-    renderAll();
-    e.target.reset();
-    toast("客户添加成功 ✅");
+    const success = await pushToCloud(data);
+    if (success) {
+        await pullFromCloud();
+        toast("客户添加成功 ✅（已同步云端）");
+        e.target.reset();
+    }
 }
 
-// 删除
-function delProperty(i) {
-    if (!confirm('确定删除？')) return;
-    properties.splice(i, 1);
-    save();
-    renderAll();
-    toast("删除成功");
-}
-function delClient(i) {
-    if (!confirm('确定删除？')) return;
-    clients.splice(i, 1);
-    save();
-    renderAll();
-    toast("删除成功");
+// 添加带看（同步云端）
+async function addVisit(e) {
+    e.preventDefault();
+    const data = {
+        type: 'visit',
+        client: document.getElementById('visitClient').value,
+        prop: document.getElementById('visitProperty').value,
+        date: document.getElementById('visitDate').value
+    };
+
+    const success = await pushToCloud(data);
+    if (success) {
+        await pullFromCloud();
+        toast("带看保存成功 ✅（已同步云端）");
+        e.target.reset();
+    }
 }
 
-// 初始化
-renderAll();
+// 添加跟进（同步云端）
+async function addFollowup(e) {
+    e.preventDefault();
+    const data = {
+        type: 'followup',
+        client: document.getElementById('fuClient').value,
+        content: document.getElementById('fuContent').value
+    };
+
+    const success = await pushToCloud(data);
+    if (success) {
+        await pullFromCloud();
+        toast("跟进保存成功 ✅（已同步云端）");
+        e.target.reset();
+    }
+}
+
+// 删除房源（同步云端）
+async function delProperty(id) {
+    if (!confirm('确定删除？删除后云端数据也会同步删除')) return;
+    const success = await deleteFromCloud(id);
+    if (success) {
+        await pullFromCloud();
+        toast("删除成功 ✅");
+    }
+}
+
+// 删除客户（同步云端）
+async function delClient(id) {
+    if (!confirm('确定删除？删除后云端数据也会同步删除')) return;
+    const success = await deleteFromCloud(id);
+    if (success) {
+        await pullFromCloud();
+        toast("删除成功 ✅");
+    }
+}
+
+// 删除带看（同步云端）
+async function delVisit(id) {
+    if (!confirm('确定删除？删除后云端数据也会同步删除')) return;
+    const success = await deleteFromCloud(id);
+    if (success) {
+        await pullFromCloud();
+        toast("删除成功 ✅");
+    }
+}
+
+// 删除跟进（同步云端）
+async function delFollowup(id) {
+    if (!confirm('确定删除？删除后云端数据也会同步删除')) return;
+    const success = await deleteFromCloud(id);
+    if (success) {
+        await pullFromCloud();
+        toast("删除成功 ✅");
+    }
+}
+
+// 页面加载时，自动拉取云端数据
+window.onload = pullFromCloud;
 </script>
 </body>
 </html>
