@@ -3,138 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>写字楼管理系统 - 云端版</title>
+    <title>写字楼租赁管理系统</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: Arial, sans-serif;
+            font-family: "Microsoft YaHei", sans-serif;
         }
+
         body {
-            background: #f5f7fa;
+            background-color: #f5f7fa;
             padding: 20px;
         }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            padding: 30px;
+            background: #fff;
+            padding: 25px;
             border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
         }
-        h1 {
+
+        .header {
             text-align: center;
-            color: #2d8cf0;
             margin-bottom: 30px;
+            color: #2d8cf0;
         }
-        .form-box {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+
+        .form-group {
+            margin-bottom: 15px;
         }
-        input, textarea, button {
+
+        input, textarea {
             width: 100%;
             padding: 12px;
-            margin: 8px 0;
             border: 1px solid #ddd;
             border-radius: 6px;
-            font-size: 16px;
+            font-size: 15px;
+            outline: none;
         }
+
+        input:focus, textarea:focus {
+            border-color: #2d8cf0;
+        }
+
         button {
-            background: #2d8cf0;
-            color: white;
+            background-color: #2d8cf0;
+            color: #fff;
             border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
             cursor: pointer;
-            font-weight: bold;
+            font-size: 16px;
+            margin-right: 10px;
         }
+
         button:hover {
-            background: #1b7acc;
+            background-color: #1b7acc;
         }
-        .item {
-            background: white;
-            padding: 15px;
+
+        .house-item {
             border: 1px solid #eee;
+            padding: 18px;
+            margin-bottom: 12px;
             border-radius: 8px;
-            margin-bottom: 10px;
+            background: #fdfdfd;
         }
-        .item h3 {
+
+        .house-item h3 {
+            margin-bottom: 8px;
             color: #333;
-            margin-bottom: 5px;
         }
-        .item p {
+
+        .house-item p {
             color: #666;
             margin-bottom: 5px;
         }
+
         .delete-btn {
-            background: #ff4d4f;
-            padding: 6px 12px;
+            background-color: #f56c6c;
+            padding: 6px 14px;
             font-size: 14px;
+        }
+
+        .delete-btn:hover {
+            background-color: #e45656;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🏢 写字楼租赁管理系统（云端共享版）</h1>
-
-    <div class="form-box">
-        <input type="text" id="title" placeholder="房源名称（如：A座502室）">
-        <input type="text" id="area" placeholder="面积（㎡）">
-        <input type="text" id="price" placeholder="价格（元/月）">
-        <textarea id="desc" placeholder="详细描述"></textarea>
-        <button onclick="saveHouse()">提交保存（云端）</button>
+    <div class="header">
+        <h1>🏢 写字楼租赁管理系统</h1>
     </div>
 
-    <div id="houseList"></div>
+    <div class="form-group">
+        <input type="text" id="houseName" placeholder="写字楼名称">
+    </div>
+    <div class="form-group">
+        <input type="text" id="houseArea" placeholder="面积（㎡）">
+    </div>
+    <div class="form-group">
+        <input type="text" id="housePrice" placeholder="租金（元/月）">
+    </div>
+    <div class="form-group">
+        <input type="text" id="houseContact" placeholder="联系方式">
+    </div>
+    <div class="form-group">
+        <textarea id="houseDesc" rows="3" placeholder="详细描述"></textarea>
+    </div>
+
+    <button onclick="saveHouse()">保存房源</button>
+    <button onclick="clearList()">清空所有</button>
+
+    <div id="houseList" style="margin-top: 30px;"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
-//  ====================== 云端数据库接口（我为你搭建的免费服务） ======================
-const API = "https://jsonbox.io/box_office_yangtian0";
+const API = "https://jsonbox.io/box_yangtian0_office_2026";
 
-// 加载所有房源
-async function loadHouses() {
+async function renderList() {
     const res = await axios.get(API);
-    const list = document.getElementById("houseList");
-    list.innerHTML = "";
-    res.data.forEach(item => {
-        list.innerHTML += `
-        <div class="item">
-            <h3>${item.title}</h3>
+    let list = res.data;
+    let html = "";
+    list.forEach((item) => {
+        html += `
+        <div class="house-item">
+            <h3>${item.name}</h3>
             <p>面积：${item.area} ㎡</p>
-            <p>价格：${item.price} 元/月</p>
+            <p>租金：${item.price} 元/月</p>
+            <p>联系人：${item.contact}</p>
             <p>描述：${item.desc}</p>
             <button class="delete-btn" onclick="deleteHouse('${item._id}')">删除</button>
-        </div>`;
+        </div>
+        `;
     });
+    document.getElementById("houseList").innerHTML = html;
 }
 
-// 保存房源到云端
 async function saveHouse() {
-    const data = {
-        title: document.getElementById("title").value,
-        area: document.getElementById("area").value,
-        price: document.getElementById("price").value,
-        desc: document.getElementById("desc").value
-    };
-    await axios.post(API, data);
-    alert("保存成功！（已同步到云端）");
-    location.reload();
+    let name = document.getElementById("houseName").value;
+    let area = document.getElementById("houseArea").value;
+    let price = document.getElementById("housePrice").value;
+    let contact = document.getElementById("houseContact").value;
+    let desc = document.getElementById("houseDesc").value;
+
+    if (!name) {
+        alert("请填写写字楼名称！");
+        return;
+    }
+
+    await axios.post(API, { name, area, price, contact, desc });
+    alert("保存成功！已同步云端");
+    renderList();
+    clearInput();
 }
 
-// 删除云端房源
 async function deleteHouse(id) {
-    if(!confirm("确定删除？")) return;
+    if (!confirm("确定删除该房源？")) return;
     await axios.delete(`${API}/${id}`);
-    alert("删除成功！");
-    location.reload();
+    renderList();
 }
 
-// 页面加载时自动获取云端数据
-window.onload = loadHouses;
+function clearInput() {
+    document.getElementById("houseName").value = "";
+    document.getElementById("houseArea").value = "";
+    document.getElementById("housePrice").value = "";
+    document.getElementById("houseContact").value = "";
+    document.getElementById("houseDesc").value = "";
+}
+
+async function clearList() {
+    if (!confirm("确定清空所有房源数据？")) return;
+    const list = await (await axios.get(API)).data;
+    for(let item of list){
+        await axios.delete(`${API}/${item._id}`);
+    }
+    renderList();
+}
+
+window.onload = renderList;
 </script>
 </body>
 </html>
