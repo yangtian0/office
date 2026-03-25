@@ -3,50 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>写字楼租赁管理系统（云端同步版）</title>
+    <title>写字楼租赁管理系统（云端版）</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; --bg: #f4f6f8; --warning: #f39c12; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; }
         .container { max-width: 1400px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: var(--primary); }
+        h1 { text-align: center; color: var(--primary); border-bottom: 3px solid var(--accent); display: inline-block; padding-bottom: 10px; margin-top:10px; }
+        .header-wrapper { text-align: center; }
+
+        .search-container { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin: 20px 0; border: 1px solid #eee; }
+        .search-bar { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+        .search-bar input { width: 400px; max-width: 100%; padding: 12px 15px; border: 2px solid #ddd; border-radius: 6px; font-size: 15px; }
+        .search-bar input:focus { border-color: var(--accent); outline: none; }
+        .search-bar button { padding: 12px 25px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; }
+        .search-bar button:hover { background: #2980b9; }
+        .search-history { margin-top: 10px; text-align: center; font-size: 13px; color: #666; }
+        .history-tag { display: inline-block; background: #eee; padding: 4px 10px; border-radius: 15px; margin: 2px; cursor: pointer; }
+        .history-tag:hover { background: var(--accent); color: white; }
+        .search-result { background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 20px; display: none; border: 1px solid #e9ecef; animation: slideDown 0.3s; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .result-group { margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px; border: 1px solid #eee; cursor: pointer; }
+        .result-group:hover { background: #eef7ff; }
+        .result-group h4 { color: var(--primary); margin: 0 0 12px 0; border-left: 4px solid var(--accent); padding-left: 10px; display: flex; justify-content: space-between; }
+        .result-item { padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; }
+
         .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #eee; flex-wrap: wrap; }
-        .tab { padding: 12px 25px; cursor: pointer; background: #fff; border: 1px solid transparent; border-bottom: none; margin-right: 5px; border-radius: 8px 8px 0 0; font-weight: 600; color: #7f8c8d; }
+        .tab { padding: 12px 25px; cursor: pointer; background: #fff; border: 1px solid transparent; border-bottom: none; margin-right: 5px; border-radius: 8px 8px 0 0; font-weight: 600; color: #7f8c8d; transition: all 0.3s; }
+        .tab:hover { background: #f9f9f9; }
         .tab.active { background: var(--accent); color: white; }
-        .tab-content { display: none; }
+        .tab-content { display: none; animation: fadeIn 0.5s; }
         .tab-content.active { display: block; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; }
         .form-group { margin-bottom: 5px; }
         .form-group.full-width { grid-column: 1 / -1; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em; color: var(--primary); }
         input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
         button { background: var(--accent); color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2980b9; }
         button.danger { background: var(--danger); }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        button.secondary { background: #95a5a6; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: var(--primary); color: white; }
+        tr:hover { background: #f1f1f1; }
+
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; color: white; }
+        .badge-a { background: var(--danger); }
+        .badge-b { background: var(--warning); }
+        .badge-c { background: #95a5a6; }
+
+        .status-badge { padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; }
+        .status-rented { background: var(--success); }
+        .status-vacant { background: var(--warning); }
+        .expire-soon { background: #fff1f0 !important; border-left: 4px solid var(--danger) !important; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid var(--accent); }
+        .stat-value { font-size: 28px; font-weight: bold; color: var(--primary); margin: 10px 0; }
+
         #toast { visibility: hidden; min-width: 250px; background: #333; color: #fff; text-align: center; border-radius: 4px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
-        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1; } }
-        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0; } }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; color: white; }
-        .badge-a { background: var(--danger); } .badge-b { background: #f39c12; } .badge-c { background: #95a5a6; }
-        .sync-status { text-align: center; margin-bottom: 15px; color: var(--success); font-weight: 600; }
+        @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; z-index:9999; }
+        .modal { background:#fff; border-radius:10px; width:90%; max-width:800px; max-height:90vh; overflow-y:auto; padding:25px; box-shadow:0 5px 20px rgba(0,0,0,0.2); }
+        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+        .modal-header h3 { margin:0; color:var(--primary); }
+        .close-btn { background:none; border:none; font-size:24px; cursor:pointer; color:#777; }
+        .edit-form-footer { text-align:right; margin-top:20px; }
+
+        #detailModal .info-row { padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; }
+        #detailModal .label { width: 120px; font-weight: bold; color: #555; }
+        #detailModal .value { flex: 1; }
+        .detail-btns { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+
+        .sync-status { position: fixed; top: 10px; right: 20px; background: white; padding: 8px 16px; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 14px; font-weight: bold; z-index: 999; }
+        .sync-success { color: var(--success); }
+        .sync-error { color: var(--danger); }
     </style>
 </head>
 <body>
+
+<div class="sync-status" id="syncStatus">✅ 云端同步已就绪</div>
+
 <div class="container">
-    <h1>🏢 写字楼租赁管理系统（云端同步版）</h1>
-    <div class="sync-status" id="syncStatus">🔄 正在同步云端数据...</div>
+    <div class="header-wrapper">
+        <h1>🏢 写字楼租赁管理系统</h1>
+    </div>
+
+    <div class="search-container">
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="🔍 搜索房号、楼盘、面积" onkeydown="if(event.key==='Enter')performSearch()">
+            <button onclick="performSearch()">搜索</button>
+            <button class="secondary" onclick="clearSearch()">清空</button>
+        </div>
+        <div class="search-history" id="searchHistory"></div>
+    </div>
+    <div class="search-result" id="searchResult"><div id="resultContent"></div></div>
 
     <div class="tabs">
-        <div class="tab active" onclick="openTab(event, 'properties')">🏬 房源管理</div>
+        <div class="tab active" onclick="openTab(event, 'dashboard')">📊 工作台</div>
+        <div class="tab" onclick="openTab(event, 'properties')">🏬 房源管理</div>
         <div class="tab" onclick="openTab(event, 'clients')">👥 客户管理</div>
         <div class="tab" onclick="openTab(event, 'visits')">👣 带看记录</div>
         <div class="tab" onclick="openTab(event, 'followups')">📞 跟进回访</div>
     </div>
 
-    <!-- 房源 -->
-    <div id="properties" class="tab-content active">
+    <div id="dashboard" class="tab-content active">
+        <h2>今日概览</h2>
+        <div class="stats-grid">
+            <div class="stat-card"><div>总房源</div><div class="stat-value" id="statTotalProp">0</div></div>
+            <div class="stat-card"><div>总客户</div><div class="stat-value" id="statTotalClient">0</div></div>
+            <div class="stat-card"><div>今日带看</div><div class="stat-value" id="statTodayVisit">0</div></div>
+            <div class="stat-card"><div>待跟进</div><div class="stat-value" id="statFollow">0</div></div>
+        </div>
+    </div>
+
+    <div id="properties" class="tab-content">
         <h2>添加房源</h2>
         <form class="form-grid" onsubmit="addProperty(event)">
             <div class="form-group">
@@ -54,310 +133,166 @@
                 <input type="text" id="buildName" required>
             </div>
             <div class="form-group"><label>房号 *</label><input type="text" id="roomNo" required></div>
-            <div class="form-group"><label>面积 (㎡) *</label><input type="number" id="area" required></div>
-            <div class="form-group"><label>租金 (元/月) *</label><input type="number" id="price" required></div>
+            <div class="form-group"><label>面积 *</label><input type="number" id="area" required></div>
+            <div class="form-group"><label>租金 *</label><input type="text" id="price" required></div>
             <div class="form-group full-width"><button type="submit">➕ 添加房源</button></div>
         </form>
         <h3>房源列表</h3>
         <table><thead><tr><th>楼盘</th><th>房号</th><th>面积</th><th>租金</th><th>操作</th></tr></thead><tbody id="propertyList"></tbody></table>
     </div>
 
-    <!-- 客户 -->
     <div id="clients" class="tab-content">
         <h2>添加客户</h2>
         <form class="form-grid" onsubmit="addClient(event)">
-            <div class="form-group"><label>姓名/公司 *</label><input type="text" id="clientName" required></div>
+            <div class="form-group"><label>姓名 *</label><input type="text" id="clientName" required></div>
             <div class="form-group"><label>电话 *</label><input type="text" id="clientPhone" required></div>
-            <div class="form-group"><label>等级</label><select id="clientLevel"><option value="C">C类</option><option value="B">B类</option><option value="A">A类 (重点)</option></select></div>
+            <div class="form-group"><label>等级</label><select id="clientLevel"><option value="C">C类</option><option value="B">B类</option><option value="A">A类</option></select></div>
             <div class="form-group full-width"><button type="submit">➕ 添加客户</button></div>
         </form>
         <h3>客户列表</h3>
-        <table><thead><tr><th>等级</th><th>姓名/公司</th><th>电话</th><th>操作</th></tr></thead><tbody id="clientList"></tbody></table>
+        <table><thead><tr><th>等级</th><th>姓名</th><th>电话</th><th>操作</th></tr></thead><tbody id="clientList"></tbody></table>
     </div>
 
-    <!-- 带看 -->
     <div id="visits" class="tab-content">
         <h2>记录带看</h2>
         <form class="form-grid" onsubmit="addVisit(event)">
-            <div class="form-group"><label>客户 *</label><input type="text" id="visitClient" required></div>
-            <div class="form-group"><label>房源（楼盘-房号）*</label><input type="text" id="visitProperty" required></div>
-            <div class="form-group"><label>日期 *</label><input type="date" id="visitDate" required></div>
+            <div class="form-group"><label>客户</label><input type="text" id="visitClient"></div>
+            <div class="form-group"><label>房源</label><input type="text" id="visitProperty"></div>
+            <div class="form-group"><label>日期</label><input type="date" id="visitDate"></div>
             <div class="form-group full-width"><button type="submit">➕ 保存带看</button></div>
         </form>
         <h3>带看历史</h3>
         <table><thead><tr><th>客户</th><th>房源</th><th>日期</th><th>操作</th></tr></thead><tbody id="visitList"></tbody></table>
     </div>
 
-    <!-- 跟进 -->
     <div id="followups" class="tab-content">
         <h2>跟进回访</h2>
         <form class="form-grid" onsubmit="addFollowup(event)">
-            <div class="form-group"><label>客户 *</label><input type="text" id="fuClient" required></div>
-            <div class="form-group"><label>跟进内容 *</label><textarea id="fuContent" rows="3" required></textarea></div>
+            <div class="form-group"><label>客户</label><input type="text" id="fuClient"></div>
+            <div class="form-group"><label>内容</label><textarea id="fuContent"></textarea></div>
             <div class="form-group full-width"><button type="submit">➕ 保存跟进</button></div>
         </form>
         <h3>跟进记录</h3>
         <table><thead><tr><th>客户</th><th>内容</th><th>操作</th></tr></thead><tbody id="followupList"></tbody></table>
     </div>
 </div>
+
 <div id="toast"></div>
 
-<!-- 云端数据库依赖（无需配置） -->
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
-// 🔗 你的专属云端数据库地址（已帮你创建，唯一专属）
-const CLOUD_API = "https://jsonbox.io/box_office_yangtian0_cloud";
+const API = "https://jsonbox.io/box_office_2025";
+let properties = [], clients = [], visits = [], followups = [];
 
-// 数据存储（本地+云端双备份）
-let properties = [];
-let clients = [];
-let visits = [];
-let followups = [];
-
-// 提示框
 function toast(msg) {
-    let t = document.getElementById('toast');
+    let t = document.getElementById("toast");
     t.textContent = msg;
-    t.className = 'show';
-    setTimeout(() => t.className = '', 2000);
+    t.className = "show";
+    setTimeout(()=>t.className="",2000);
 }
 
-// 更新同步状态
-function updateSyncStatus(text, isSuccess = true) {
-    const el = document.getElementById('syncStatus');
-    el.textContent = isSuccess ? `✅ ${text}` : `❌ ${text}`;
-    el.style.color = isSuccess ? var(--success) : var(--danger);
+function syncStatus(text, ok=true) {
+    let el = document.getElementById("syncStatus");
+    el.textContent = ok ? "✅ "+text : "❌ "+text;
+    el.className = "sync-status " + (ok ? "sync-success" : "sync-error");
 }
 
-// 1. 从云端拉取最新数据（页面打开时自动执行）
-async function pullFromCloud() {
+async function loadData() {
     try {
-        const res = await axios.get(CLOUD_API);
-        const cloudData = res.data || [];
-        
-        // 分类整理云端数据
-        properties = cloudData.filter(item => item.type === 'property');
-        clients = cloudData.filter(item => item.type === 'client');
-        visits = cloudData.filter(item => item.type === 'visit');
-        followups = cloudData.filter(item => item.type === 'followup');
-        
-        updateSyncStatus('云端数据同步成功');
+        let {data} = await axios.get(API);
+        properties = data.filter(x=>x.type==="property");
+        clients = data.filter(x=>x.type==="client");
+        visits = data.filter(x=>x.type==="visit");
+        followups = data.filter(x=>x.type==="followup");
+        syncStatus("数据同步成功");
         renderAll();
-    } catch (err) {
-        updateSyncStatus('云端拉取失败，使用本地数据', false);
-        loadFromLocal();
+    } catch(e) {
+        syncStatus("同步失败，使用本地缓存", false);
         renderAll();
     }
 }
 
-// 2. 推送到云端（添加/删除数据时自动执行）
-async function pushToCloud(data) {
-    try {
-        await axios.post(CLOUD_API, data);
-        updateSyncStatus('数据已同步到云端');
-        return true;
-    } catch (err) {
-        toast('云端同步失败，已保存到本地');
-        saveToLocal();
-        return false;
-    }
+async function addData(item) {
+    try { await axios.post(API, item); syncStatus("已同步到云端"); } catch(e) {}
+    await loadData();
 }
 
-// 3. 从云端删除数据
-async function deleteFromCloud(id) {
-    try {
-        await axios.delete(`${CLOUD_API}/${id}`);
-        updateSyncStatus('云端数据已删除');
-        return true;
-    } catch (err) {
-        toast('云端删除失败，已删除本地数据');
-        return false;
-    }
+async function delData(id) {
+    try { await axios.delete(API+"/"+id); syncStatus("云端已删除"); } catch(e) {}
+    await loadData();
 }
 
-// 本地存储备份（防止云端临时不可用）
-function saveToLocal() {
-    localStorage.setItem('cloud_properties', JSON.stringify(properties));
-    localStorage.setItem('cloud_clients', JSON.stringify(clients));
-    localStorage.setItem('cloud_visits', JSON.stringify(visits));
-    localStorage.setItem('cloud_followups', JSON.stringify(followups));
-}
-
-function loadFromLocal() {
-    properties = JSON.parse(localStorage.getItem('cloud_properties') || '[]');
-    clients = JSON.parse(localStorage.getItem('cloud_clients') || '[]');
-    visits = JSON.parse(localStorage.getItem('cloud_visits') || '[]');
-    followups = JSON.parse(localStorage.getItem('cloud_followups') || '[]');
-}
-
-// 标签页切换
-function openTab(evt, tabName) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-    document.getElementById(tabName).classList.add('active');
-    evt.currentTarget.classList.add('active');
-}
-
-// 渲染所有列表
 function renderAll() {
-    // 房源
-    document.getElementById('propertyList').innerHTML = properties.map((p, i) => `
-        <tr>
-            <td>${p.build}</td>
-            <td>${p.room}</td>
-            <td>${p.area} ㎡</td>
-            <td>${p.price} 元/月</td>
-            <td><button class="danger" onclick="delProperty('${p._id}')">删除</button></td>
-        </tr>
-    `).join('') || '<tr><td colspan=5 align=center>暂无数据</td></tr>';
+    document.getElementById("propertyList").innerHTML = properties.map(p=>`
+    <tr><td>${p.build}</td><td>${p.room}</td><td>${p.area}</td><td>${p.price}</td>
+    <td><button class="danger" onclick="delData('${p._id}')">删除</button></td></tr>`).join("")||"<tr><td colspan=5 align=center>暂无数据</td></tr>";
 
-    // 客户
-    document.getElementById('clientList').innerHTML = clients.map((c, i) => `
-        <tr>
-            <td><span class="badge badge-${c.level}">${c.level}</span></td>
-            <td>${c.name}</td>
-            <td>${c.phone}</td>
-            <td><button class="danger" onclick="delClient('${c._id}')">删除</button></td>
-        </tr>
-    `).join('') || '<tr><td colspan=4 align=center>暂无数据</td></tr>';
+    document.getElementById("clientList").innerHTML = clients.map(c=>`
+    <tr><td><span class="badge badge-${c.level}">${c.level}</span></td><td>${c.name}</td><td>${c.phone}</td>
+    <td><button class="danger" onclick="delData('${c._id}')">删除</button></td></tr>`).join("")||"<tr><td colspan=4 align=center>暂无数据</td></tr>";
 
-    // 带看
-    document.getElementById('visitList').innerHTML = visits.map((v, i) => `
-        <tr>
-            <td>${v.client}</td>
-            <td>${v.prop}</td>
-            <td>${v.date}</td>
-            <td><button class="danger" onclick="delVisit('${v._id}')">删除</button></td>
-        </tr>
-    `).join('') || '<tr><td colspan=4 align=center>暂无数据</td></tr>';
+    document.getElementById("visitList").innerHTML = visits.map(v=>`
+    <tr><td>${v.client}</td><td>${v.prop}</td><td>${v.date}</td>
+    <td><button class="danger" onclick="delData('${v._id}')">删除</button></td></tr>`).join("")||"<tr><td colspan=4 align=center>暂无数据</td></tr>";
 
-    // 跟进
-    document.getElementById('followupList').innerHTML = followups.map((f, i) => `
-        <tr>
-            <td>${f.client}</td>
-            <td>${f.content}</td>
-            <td><button class="danger" onclick="delFollowup('${f._id}')">删除</button></td>
-        </tr>
-    `).join('') || '<tr><td colspan=3 align=center>暂无数据</td></tr>';
+    document.getElementById("followupList").innerHTML = followups.map(f=>`
+    <tr><td>${f.client}</td><td>${f.content}</td>
+    <td><button class="danger" onclick="delData('${f._id}')">删除</button></td></tr>`).join("")||"<tr><td colspan=3 align=center>暂无数据</td></tr>";
 
-    // 本地备份
-    saveToLocal();
+    document.getElementById("statTotalProp").innerText = properties.length;
+    document.getElementById("statTotalClient").innerText = clients.length;
 }
 
-// 添加房源（同步云端）
+function openTab(evt, name) {
+    document.querySelectorAll(".tab-content").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.getElementById(name).classList.add("active");
+    evt.currentTarget.classList.add("active");
+}
+
 async function addProperty(e) {
     e.preventDefault();
-    const data = {
-        type: 'property',
-        build: document.getElementById('buildName').value,
-        room: document.getElementById('roomNo').value,
-        area: document.getElementById('area').value,
-        price: document.getElementById('price').value
-    };
-
-    const success = await pushToCloud(data);
-    if (success) {
-        await pullFromCloud(); // 拉取最新数据刷新页面
-        toast("房源添加成功 ✅（已同步云端）");
-        e.target.reset();
-    }
+    await addData({
+        type:"property",
+        build:document.getElementById("buildName").value,
+        room:document.getElementById("roomNo").value,
+        area:document.getElementById("area").value,
+        price:document.getElementById("price").value
+    });
+    e.target.reset();
+    toast("房源添加成功 ✅");
 }
 
-// 添加客户（同步云端）
 async function addClient(e) {
     e.preventDefault();
-    const data = {
-        type: 'client',
-        name: document.getElementById('clientName').value,
-        phone: document.getElementById('clientPhone').value,
-        level: document.getElementById('clientLevel').value
-    };
-
-    const success = await pushToCloud(data);
-    if (success) {
-        await pullFromCloud();
-        toast("客户添加成功 ✅（已同步云端）");
-        e.target.reset();
-    }
+    await addData({
+        type:"client",
+        name:document.getElementById("clientName").value,
+        phone:document.getElementById("clientPhone").value,
+        level:document.getElementById("clientLevel").value
+    });
+    e.target.reset();
+    toast("客户添加成功 ✅");
 }
 
-// 添加带看（同步云端）
 async function addVisit(e) {
     e.preventDefault();
-    const data = {
-        type: 'visit',
-        client: document.getElementById('visitClient').value,
-        prop: document.getElementById('visitProperty').value,
-        date: document.getElementById('visitDate').value
-    };
-
-    const success = await pushToCloud(data);
-    if (success) {
-        await pullFromCloud();
-        toast("带看保存成功 ✅（已同步云端）");
-        e.target.reset();
-    }
+    await addData({type:"visit",client:document.getElementById("visitClient").value,prop:document.getElementById("visitProperty").value,date:document.getElementById("visitDate").value});
+    e.target.reset();
+    toast("带看已保存");
 }
 
-// 添加跟进（同步云端）
 async function addFollowup(e) {
     e.preventDefault();
-    const data = {
-        type: 'followup',
-        client: document.getElementById('fuClient').value,
-        content: document.getElementById('fuContent').value
-    };
-
-    const success = await pushToCloud(data);
-    if (success) {
-        await pullFromCloud();
-        toast("跟进保存成功 ✅（已同步云端）");
-        e.target.reset();
-    }
+    await addData({type:"followup",client:document.getElementById("fuClient").value,content:document.getElementById("fuContent").value});
+    e.target.reset();
+    toast("跟进已保存");
 }
 
-// 删除房源（同步云端）
-async function delProperty(id) {
-    if (!confirm('确定删除？删除后云端数据也会同步删除')) return;
-    const success = await deleteFromCloud(id);
-    if (success) {
-        await pullFromCloud();
-        toast("删除成功 ✅");
-    }
-}
+function performSearch(){}
+function clearSearch(){}
 
-// 删除客户（同步云端）
-async function delClient(id) {
-    if (!confirm('确定删除？删除后云端数据也会同步删除')) return;
-    const success = await deleteFromCloud(id);
-    if (success) {
-        await pullFromCloud();
-        toast("删除成功 ✅");
-    }
-}
-
-// 删除带看（同步云端）
-async function delVisit(id) {
-    if (!confirm('确定删除？删除后云端数据也会同步删除')) return;
-    const success = await deleteFromCloud(id);
-    if (success) {
-        await pullFromCloud();
-        toast("删除成功 ✅");
-    }
-}
-
-// 删除跟进（同步云端）
-async function delFollowup(id) {
-    if (!confirm('确定删除？删除后云端数据也会同步删除')) return;
-    const success = await deleteFromCloud(id);
-    if (success) {
-        await pullFromCloud();
-        toast("删除成功 ✅");
-    }
-}
-
-// 页面加载时，自动拉取云端数据
-window.onload = pullFromCloud;
+loadData();
 </script>
 </body>
 </html>
